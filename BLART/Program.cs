@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Rest;
@@ -17,6 +18,10 @@ namespace BLART
             public ulong SetupChannelId { get; set; }
             public ulong CategoryId { get; set; }
             public int MaxRentedVCs { get; set; } = 25;
+            public List<ulong> ModeratorRoleIds { get; set; } = new List<ulong>()
+            {
+                0
+            };
         }
 
         private DiscordSocketClient _client;
@@ -30,7 +35,13 @@ namespace BLART
 
         public async Task MainAsync()
         {
-            _client = new DiscordSocketClient();
+            _client = new DiscordSocketClient(new DiscordSocketConfig()
+            {
+                // LogLevel = LogSeverity.Verbose,
+                AlwaysDownloadUsers = true,
+                LargeThreshold = 10000,
+                MessageCacheSize = 500
+            });
             _client.Log += Log;
             _client.UserVoiceStateUpdated += UserVoiceUpdated;
             _client.ChannelUpdated += ChannelUpdated;
@@ -51,16 +62,34 @@ namespace BLART
             if (after is SocketVoiceChannel channel && channel.CategoryId == config.CategoryId && channel.Id != config.SetupChannelId)
             {
                 List<ulong> roles = new List<ulong>();
+                List<ulong> users = new List<ulong>();
                 foreach (Overwrite ovr in channel.PermissionOverwrites)
                 {
+                    var tuser = channel.Guild.GetUser(ovr.TargetId);
+                    if (tuser != null)
+                    {
+                        Console.WriteLine(tuser.Username);
+                        Console.WriteLine(string.Join(", ", tuser.Roles.Select(p => p.Id.ToString())));
+                        Console.WriteLine(tuser.Roles.ToList().FindIndex(p => config.ModeratorRoleIds.Contains(p.Id)));
+                    }
                     if (ovr.TargetType == PermissionTarget.Role && ovr.TargetId != channel.Guild.EveryoneRole.Id)
                     {
                         roles.Add(ovr.TargetId);
+                    }
+                    else if (ovr.TargetType == PermissionTarget.User && tuser != null && tuser.Roles.ToList().FindIndex(p => config.ModeratorRoleIds.Contains(p.Id)) != -1)
+                    {
+                        Console.WriteLine(ovr.TargetId);
+                        users.Add(ovr.TargetId);
                     }
                 }
                 for (int i = 0; i < roles.Count; i++)
                 {
                     await channel.RemovePermissionOverwriteAsync(channel.Guild.GetRole(roles[i]));
+                    await Task.Delay(100);
+                }
+                for (int i = 0; i < users.Count; i++)
+                {
+                    await channel.RemovePermissionOverwriteAsync(channel.Guild.GetUser(users[i]));
                     await Task.Delay(100);
                 }
             }
