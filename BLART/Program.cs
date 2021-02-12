@@ -16,6 +16,7 @@ namespace BLART
             public string Token { get; set; } = "bot_token";
             public ulong SetupChannelId { get; set; }
             public ulong CategoryId { get; set; }
+            public int MaxRentedVCs { get; set; } = 25;
         }
 
         private DiscordSocketClient _client;
@@ -51,15 +52,30 @@ namespace BLART
                 var chnl = user.VoiceChannel;
                 if (chnl != null && chnl.Id == config.SetupChannelId)
                 {
-                    RestVoiceChannel vc = await chnl.Guild.CreateVoiceChannelAsync(user.Username, prop =>
+                    if (chnl.Category is SocketCategoryChannel cat)
                     {
-                        prop.CategoryId = config.CategoryId;
-                    });
-                    await vc.AddPermissionOverwriteAsync(user, OverwritePermissions.AllowAll(vc));
-                    await user.ModifyAsync(prop =>
-                    {
-                        prop.Channel = vc;
-                    });
+                        if (cat.Channels.Count - 1 >= config.MaxRentedVCs)
+                        {
+                            await user.ModifyAsync(prop =>
+                            {
+                                prop.Channel = null;
+                            });
+                        }
+                        else
+                        {
+                            RestVoiceChannel vc = await chnl.Guild.CreateVoiceChannelAsync(user.Username, prop =>
+                            {
+                                prop.CategoryId = config.CategoryId;
+                            });
+                            OverwritePermissions creatorperms = OverwritePermissions.InheritAll;
+                            creatorperms = creatorperms.Modify(viewChannel: PermValue.Allow, manageChannel: PermValue.Allow, manageRoles: PermValue.Allow, useVoiceActivation: PermValue.Allow, prioritySpeaker: PermValue.Allow, connect: PermValue.Allow, stream: PermValue.Allow, speak: PermValue.Allow);
+                            await vc.AddPermissionOverwriteAsync(user, creatorperms);
+                            await user.ModifyAsync(prop =>
+                            {
+                                prop.Channel = vc;
+                            });
+                        }
+                    }
                 }
                 if (arg2.VoiceChannel != null && arg2.VoiceChannel.CategoryId == config.CategoryId && arg2.VoiceChannel.Id != config.SetupChannelId && arg2.VoiceChannel.Users.Count == 0)
                 {
