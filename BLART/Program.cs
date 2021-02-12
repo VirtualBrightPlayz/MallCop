@@ -33,6 +33,7 @@ namespace BLART
             _client = new DiscordSocketClient();
             _client.Log += Log;
             _client.UserVoiceStateUpdated += UserVoiceUpdated;
+            _client.ChannelUpdated += ChannelUpdated;
 
             if (!File.Exists(path))
                 await File.WriteAllTextAsync(path, JsonConvert.SerializeObject(new Config(), Formatting.Indented));
@@ -43,6 +44,26 @@ namespace BLART
             await _client.StartAsync();
 
             await Task.Delay(-1);
+        }
+
+        private  async Task ChannelUpdated(SocketChannel before, SocketChannel after)
+        {
+            if (after is SocketVoiceChannel channel && channel.CategoryId == config.CategoryId && channel.Id != config.SetupChannelId)
+            {
+                List<ulong> roles = new List<ulong>();
+                foreach (Overwrite ovr in channel.PermissionOverwrites)
+                {
+                    if (ovr.TargetType == PermissionTarget.Role && ovr.TargetId != channel.Guild.EveryoneRole.Id)
+                    {
+                        roles.Add(ovr.TargetId);
+                    }
+                }
+                for (int i = 0; i < roles.Count; i++)
+                {
+                    await channel.RemovePermissionOverwriteAsync(channel.Guild.GetRole(roles[i]));
+                    await Task.Delay(100);
+                }
+            }
         }
 
         private async Task UserVoiceUpdated(SocketUser arg1, SocketVoiceState arg2, SocketVoiceState arg3)
