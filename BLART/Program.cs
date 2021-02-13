@@ -66,11 +66,16 @@ namespace BLART
                 foreach (Overwrite ovr in channel.PermissionOverwrites)
                 {
                     var tuser = channel.Guild.GetUser(ovr.TargetId);
-                    if (tuser != null)
+                    if (ovr.Permissions.MuteMembers == PermValue.Allow || ovr.Permissions.DeafenMembers == PermValue.Allow || ovr.Permissions.MoveMembers == PermValue.Allow || ovr.Permissions.CreateInstantInvite == PermValue.Allow)
                     {
-                        Console.WriteLine(tuser.Username);
-                        Console.WriteLine(string.Join(", ", tuser.Roles.Select(p => p.Id.ToString())));
-                        Console.WriteLine(tuser.Roles.ToList().FindIndex(p => config.ModeratorRoleIds.Contains(p.Id)));
+                        if (ovr.TargetType == PermissionTarget.Role)
+                        {
+                            roles.Add(ovr.TargetId);
+                        }
+                        else
+                        {
+                            users.Add(ovr.TargetId);
+                        }
                     }
                     if (ovr.TargetType == PermissionTarget.Role && ovr.TargetId != channel.Guild.EveryoneRole.Id)
                     {
@@ -78,7 +83,6 @@ namespace BLART
                     }
                     else if (ovr.TargetType == PermissionTarget.User && tuser != null && tuser.Roles.ToList().FindIndex(p => config.ModeratorRoleIds.Contains(p.Id)) != -1)
                     {
-                        Console.WriteLine(ovr.TargetId);
                         users.Add(ovr.TargetId);
                     }
                 }
@@ -117,7 +121,7 @@ namespace BLART
                             {
                                 prop.CategoryId = config.CategoryId;
                             });
-                            OverwritePermissions creatorperms = OverwritePermissions.InheritAll;
+                            OverwritePermissions creatorperms = OverwritePermissions.DenyAll(vc);
                             creatorperms = creatorperms.Modify(viewChannel: PermValue.Allow, manageChannel: PermValue.Allow, manageRoles: PermValue.Allow, useVoiceActivation: PermValue.Allow, prioritySpeaker: PermValue.Allow, connect: PermValue.Allow, stream: PermValue.Allow, speak: PermValue.Allow);
                             await vc.AddPermissionOverwriteAsync(user, creatorperms);
                             await user.ModifyAsync(prop =>
