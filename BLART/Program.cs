@@ -81,7 +81,7 @@ namespace BLART
                     {
                         roles.Add(ovr.TargetId);
                     }
-                    else if (ovr.TargetType == PermissionTarget.User && (ovr.Permissions.ViewChannel == PermValue.Deny || ovr.Permissions.Connect == PermValue.Deny ||  ovr.Permissions.MuteMembers == PermValue.Deny ||  ovr.Permissions.DeafenMembers == PermValue.Deny ||  ovr.Permissions.ManageChannel == PermValue.Deny) && tuser != null && tuser.Roles.ToList().FindIndex(p => config.ModeratorRoleIds.Contains(p.Id)) != -1)
+                    else if (ovr.TargetType == PermissionTarget.User && (ovr.Permissions.ViewChannel == PermValue.Deny || ovr.Permissions.Connect == PermValue.Deny) && tuser != null && tuser.Roles.ToList().FindIndex(p => config.ModeratorRoleIds.Contains(p.Id)) != -1)
                     {
                         users.Add(ovr.TargetId);
                     }
